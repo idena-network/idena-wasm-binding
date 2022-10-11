@@ -9,7 +9,7 @@ type Address = [20]byte
 
 func newAddress(data []byte) Address {
 	res := Address{}
-	copy(res[:], data[:20])
+	copy(res[:], data)
 	return res
 }
 
