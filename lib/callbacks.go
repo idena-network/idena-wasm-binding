@@ -92,6 +92,11 @@ GoResult cepoch(api_t *ptr, uint64_t *used_gas,  uint16_t *epoch);
 typedef GoResult (*read_contract_data_fn)(api_t *ptr, U8SliceView addr, U8SliceView key,  uint64_t *used_gas,  UnmanagedVector *result);
 GoResult cread_contract_data(api_t *ptr, U8SliceView addr, U8SliceView key,  uint64_t *used_gas,  UnmanagedVector *result);
 
+
+
+typedef GoResult (*pay_amount_fn)(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *result);
+GoResult cpay_amount(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *result);
+
 */
 import "C"
 import (
@@ -150,6 +155,7 @@ var api_vtable = C.GoApi_vtable{
 	code_hash:             (C.code_hash_fn)(C.ccode_hash),
 	epoch:                 (C.epoch_fn)(C.cepoch),
 	read_contract_data:    (C.read_contract_data_fn)(C.cread_contract_data),
+	pay_amount:            (C.pay_amount_fn)(C.cpay_amount),
 }
 
 // contract: original pointer/struct referenced must live longer than C.GoApi struct
@@ -656,5 +662,17 @@ func cepoch(ptr *C.api_t, gasUsed *cu64, epoch *cu16) (ret C.GoResult) {
 	e := api.host.Epoch(api.gasMeter)
 	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
 	*epoch = cu16(e)
+	return C.GoResult_Ok
+}
+
+
+//export cpay_amount
+func cpay_amount(ptr *C.api_t, gasUsed *cu64,  result *C.UnmanagedVector) (ret C.GoResult) {
+	api := (*GoAPI)(unsafe.Pointer(ptr))
+	defer recoverPanic(&ret, api, gasUsed)
+	gasBefore := api.gasMeter.GasConsumed()
+	amount := api.host.PayAmount(api.gasMeter)
+	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
+	*result = newUnmanagedVector(amount.Bytes())
 	return C.GoResult_Ok
 }
