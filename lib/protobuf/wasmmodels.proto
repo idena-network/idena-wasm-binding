@@ -4,7 +4,12 @@ syntax = "proto3";
 package models;
 
 message ProtoArgs {
-  repeated bytes args = 1;
+  repeated Argument args = 1;
+
+  message Argument {
+    bytes value = 1;
+    bool is_nil = 2;
+  }
 }
 
 message Action {
