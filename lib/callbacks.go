@@ -167,7 +167,7 @@ func buildAPI(api *GoAPI) C.GoApi {
 	}
 }
 
-func recoverPanic(ret *C.GoResult, api *GoAPI, gasUsed *cu64) {
+func recoverPanicAndResetGasUsed(ret *C.GoResult, api *GoAPI, gasUsed *cu64) {
 	if rec := recover(); rec != nil {
 		switch rec.(type) {
 		case OutOfGas:
@@ -180,12 +180,14 @@ func recoverPanic(ret *C.GoResult, api *GoAPI, gasUsed *cu64) {
 			*ret = C.GoResult_Panic
 		}
 	}
+	api.gasMeter.gasLimit = 0
+	api.gasMeter.gasConsumed = 0
 }
 
 //export cset_remaining_gas
 func cset_remaining_gas(ptr *C.api_t, remainingGas cu64) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, nil)
+	defer recoverPanicAndResetGasUsed(&ret, api, nil)
 	api.gasMeter.SetRemainingGas(uint64(remainingGas))
 	return C.GoResult_Ok
 }
@@ -193,7 +195,7 @@ func cset_remaining_gas(ptr *C.api_t, remainingGas cu64) (ret C.GoResult) {
 //export cset_storage
 func cset_storage(ptr *C.api_t, key C.U8SliceView, value C.U8SliceView, gasUsed *cu64) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	k := copyU8Slice(key)
 	v := copyU8Slice(value)
@@ -206,7 +208,7 @@ func cset_storage(ptr *C.api_t, key C.U8SliceView, value C.U8SliceView, gasUsed 
 //export cget_storage
 func cget_storage(ptr *C.api_t, key C.U8SliceView, gasUsed *cu64, value *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	k := copyU8Slice(key)
 	gasBefore := api.gasMeter.GasConsumed()
@@ -219,7 +221,7 @@ func cget_storage(ptr *C.api_t, key C.U8SliceView, gasUsed *cu64, value *C.Unman
 //export cremove_storage
 func cremove_storage(ptr *C.api_t, key C.U8SliceView, gasUsed *cu64) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	k := copyU8Slice(key)
 	gasBefore := api.gasMeter.GasConsumed()
@@ -231,7 +233,7 @@ func cremove_storage(ptr *C.api_t, key C.U8SliceView, gasUsed *cu64) (ret C.GoRe
 //export csend
 func csend(ptr *C.api_t, addr C.U8SliceView, amount C.U8SliceView, gasUsed *cu64, errOut *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	address := newAddress(copyU8Slice(addr))
 	amountBytes := copyU8Slice(amount)
@@ -246,7 +248,7 @@ func csend(ptr *C.api_t, addr C.U8SliceView, amount C.U8SliceView, gasUsed *cu64
 func cblock_timestamp(ptr *C.api_t, gasUsed *cu64, blockTimestamp *ci64) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	gasBefore := api.gasMeter.GasConsumed()
 
@@ -259,7 +261,7 @@ func cblock_timestamp(ptr *C.api_t, gasUsed *cu64, blockTimestamp *ci64) (ret C.
 func cblock_number(ptr *C.api_t, gasUsed *cu64, blockNumer *cu64) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 	gasBefore := api.gasMeter.GasConsumed()
 
 	*blockNumer = cu64(api.host.BlockNumber(api.gasMeter))
@@ -272,7 +274,7 @@ func cblock_number(ptr *C.api_t, gasUsed *cu64, blockNumer *cu64) (ret C.GoResul
 func cmin_fee_per_gas(ptr *C.api_t, gasUsed *cu64, data *C.UnmanagedVector) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	gasBefore := api.gasMeter.GasConsumed()
 	feePerGas := api.host.MinFeePerGas(api.gasMeter)
@@ -285,7 +287,7 @@ func cmin_fee_per_gas(ptr *C.api_t, gasUsed *cu64, data *C.UnmanagedVector) (ret
 func cbalance(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, data *C.UnmanagedVector) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	address := newAddress(copyU8Slice(addr))
 	gasBefore := api.gasMeter.GasConsumed()
@@ -300,7 +302,7 @@ func cbalance(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, data *C.Unmanaged
 func cblock_seed(ptr *C.api_t, gasUsed *cu64, data *C.UnmanagedVector) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	gasBefore := api.gasMeter.GasConsumed()
 	seed := api.host.BlockSeed(api.gasMeter)
@@ -313,7 +315,7 @@ func cblock_seed(ptr *C.api_t, gasUsed *cu64, data *C.UnmanagedVector) (ret C.Go
 func cnetwork_size(ptr *C.api_t, gasUsed *cu64, network *cu64) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	gasBefore := api.gasMeter.GasConsumed()
 
@@ -327,7 +329,7 @@ func cnetwork_size(ptr *C.api_t, gasUsed *cu64, network *cu64) (ret C.GoResult) 
 func cidentity_state(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, state *cu8) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	address := newAddress(copyU8Slice(addr))
 	gasBefore := api.gasMeter.GasConsumed()
@@ -341,7 +343,7 @@ func cidentity_state(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, state *cu8
 //export cidentity
 func cidentity(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	address := newAddress(copyU8Slice(addr))
 	gasBefore := api.gasMeter.GasConsumed()
@@ -356,7 +358,7 @@ func cidentity(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, result *C.Unmana
 func ccall(ptr *C.api_t, addr C.U8SliceView, method C.U8SliceView, args C.U8SliceView, amount C.U8SliceView, invocationContext C.U8SliceView, gasLimit cu64, gasUsed *cu64, actionResult *C.UnmanagedVector) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 	address := newAddress(copyU8Slice(addr))
 
 	code := api.host.GetCode(address)
@@ -366,6 +368,7 @@ func ccall(ptr *C.api_t, addr C.U8SliceView, method C.U8SliceView, args C.U8Slic
 
 	setActionResult := func(err string) {
 		actionResultObj := models.ActionResult{}
+		actionResultObj.Contract = address[:]
 		actionResultObj.Success = false
 		actionResultObj.Error = err
 		actionResultObj.GasUsed = 0
@@ -387,7 +390,7 @@ func ccall(ptr *C.api_t, addr C.U8SliceView, method C.U8SliceView, args C.U8Slic
 		return C.GoResult_Other
 	}
 
-	subHost, err := api.host.CreateSubEnv(address, big.NewInt(0).SetBytes(pAmount), false)
+	subHost, err := api.host.CreateSubEnv(address, string(pMethod), big.NewInt(0).SetBytes(pAmount), false)
 	if err != nil {
 		setActionResult(err.Error())
 		return C.GoResult_Other
@@ -400,6 +403,7 @@ func ccall(ptr *C.api_t, addr C.U8SliceView, method C.U8SliceView, args C.U8Slic
 	subCallGasUsed, actionResultBytes, err := execute(subApi, code, pMethod, pArgs, copyU8Slice(invocationContext), uint64(gasLimit))
 	if err == nil {
 		subHost.Commit()
+		api.host.Commit()
 	}
 	*gasUsed = cu64(subCallGasUsed)
 	*actionResult = newUnmanagedVector(actionResultBytes)
@@ -413,11 +417,13 @@ func ccall(ptr *C.api_t, addr C.U8SliceView, method C.U8SliceView, args C.U8Slic
 func cdeploy(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce C.U8SliceView, amount C.U8SliceView, gasLimit cu64, gasUsed *cu64, actionResult *C.UnmanagedVector) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 	pNonce := copyU8Slice(nonce)
 	pAmount := copyU8Slice(amount)
 	pArgs := copyU8Slice(args)
 	pCode := copyU8Slice(code)
+
+	addr := api.host.ContractAddr(api.gasMeter, pCode, pArgs, pNonce)
 
 	setActionResult := func(err string) {
 		actionResultObj := models.ActionResult{}
@@ -425,6 +431,7 @@ func cdeploy(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce C.U8Sli
 		actionResultObj.Error = err
 		actionResultObj.GasUsed = 0
 		actionResultObj.RemainingGas = uint64(gasLimit)
+		actionResultObj.Contract = addr[:]
 		actionResultObj.InputAction = &models.Action{
 			ActionType: ActionDeployContract,
 			Amount:     pAmount,
@@ -439,14 +446,14 @@ func cdeploy(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce C.U8Sli
 		}
 	}
 
-	addr := api.host.ContractAddr(api.gasMeter, pCode, pArgs, pNonce)
+
 
 	if api.host.ContractCodeHash(addr) != nil {
 		setActionResult("contract is already deployed")
 		return C.GoResult_Other
 	}
 
-	subHost, err := api.host.CreateSubEnv(addr, big.NewInt(0).SetBytes(copyU8Slice(amount)), true)
+	subHost, err := api.host.CreateSubEnv(addr, "deploy", big.NewInt(0).SetBytes(copyU8Slice(amount)), true)
 	if err != nil {
 		setActionResult(err.Error())
 		return C.GoResult_Other
@@ -461,6 +468,7 @@ func cdeploy(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce C.U8Sli
 	println(fmt.Sprintf("deploy err: %v", err))
 	if err == nil {
 		subHost.Commit()
+		api.host.Commit()
 	}
 	*gasUsed = cu64(subCallGasUsed)
 	*actionResult = newUnmanagedVector(actionResultBytes)
@@ -473,7 +481,7 @@ func cdeploy(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce C.U8Sli
 //export ccaller
 func ccaller(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	gasBefore := api.gasMeter.GasConsumed()
 
@@ -488,7 +496,7 @@ func ccaller(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoRe
 func coriginal_caller(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	gasBefore := api.gasMeter.GasConsumed()
 
@@ -503,7 +511,7 @@ func coriginal_caller(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (r
 func ccommit(ptr *C.api_t) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, nil)
+	defer recoverPanicAndResetGasUsed(&ret, api, nil)
 	api.host.Commit()
 	api.host.Clear()
 	return C.GoResult_Ok
@@ -513,7 +521,7 @@ func ccommit(ptr *C.api_t) (ret C.GoResult) {
 func cdeduct_balance(ptr *C.api_t, amount C.U8SliceView, gasUsed *cu64, errOut *C.UnmanagedVector) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	amountBytes := copyU8Slice(amount)
 	gasBefore := api.gasMeter.GasConsumed()
@@ -532,7 +540,7 @@ func cdeduct_balance(ptr *C.api_t, amount C.U8SliceView, gasUsed *cu64, errOut *
 func cadd_balance(ptr *C.api_t, addr C.U8SliceView, amount C.U8SliceView, gasUsed *cu64) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	address := newAddress(copyU8Slice(addr))
 	amountBytes := copyU8Slice(amount)
@@ -546,7 +554,7 @@ func cadd_balance(ptr *C.api_t, addr C.U8SliceView, amount C.U8SliceView, gasUse
 //export ccontract
 func ccontract(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	gasBefore := api.gasMeter.GasConsumed()
 	addr := api.host.ContractAddress(api.gasMeter)
@@ -559,7 +567,7 @@ func ccontract(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.Go
 //export ccontract_code
 func ccontract_code(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	address := newAddress(copyU8Slice(addr))
 
@@ -574,7 +582,7 @@ func ccontract_code(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, result *C.U
 //export ccontract_addr
 func ccontract_addr(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce C.U8SliceView, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 	codeBytes := copyU8Slice(code)
 	argsBytes := copyU8Slice(args)
 	nonceBytes := copyU8Slice(nonce)
@@ -591,7 +599,7 @@ func ccontract_addr(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce 
 //export ccontract_addr_by_hash
 func ccontract_addr_by_hash(ptr *C.api_t, hash C.U8SliceView, args C.U8SliceView, nonce C.U8SliceView, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 	codeBytes := copyU8Slice(hash)
 	argsBytes := copyU8Slice(args)
 	nonceBytes := copyU8Slice(nonce)
@@ -608,7 +616,7 @@ func ccontract_addr_by_hash(ptr *C.api_t, hash C.U8SliceView, args C.U8SliceView
 //export cown_code
 func cown_code(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	gasBefore := api.gasMeter.GasConsumed()
 	code := api.host.OwnCode(api.gasMeter)
@@ -621,7 +629,7 @@ func cown_code(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.Go
 //export ccode_hash
 func ccode_hash(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
 	gasBefore := api.gasMeter.GasConsumed()
 	code := api.host.CodeHash(api.gasMeter)
@@ -634,7 +642,7 @@ func ccode_hash(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.G
 //export cevent
 func cevent(ptr *C.api_t, eventName C.U8SliceView, args C.U8SliceView, gasUsed *cu64) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 	gasBefore := api.gasMeter.GasConsumed()
 	api.host.Event(api.gasMeter, string(copyU8Slice(eventName)), UnpackArguments(copyU8Slice(args))...)
 	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
@@ -644,7 +652,7 @@ func cevent(ptr *C.api_t, eventName C.U8SliceView, args C.U8SliceView, gasUsed *
 //export cread_contract_data
 func cread_contract_data(ptr *C.api_t, addr C.U8SliceView, key C.U8SliceView, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 	address := newAddress(copyU8Slice(addr))
 	gasBefore := api.gasMeter.GasConsumed()
 	value := api.host.ReadContractData(api.gasMeter, address, copyU8Slice(key))
@@ -656,7 +664,7 @@ func cread_contract_data(ptr *C.api_t, addr C.U8SliceView, key C.U8SliceView, ga
 //export cepoch
 func cepoch(ptr *C.api_t, gasUsed *cu64, epoch *cu16) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 	gasBefore := api.gasMeter.GasConsumed()
 	e := api.host.Epoch(api.gasMeter)
 	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
@@ -667,7 +675,7 @@ func cepoch(ptr *C.api_t, gasUsed *cu64, epoch *cu16) (ret C.GoResult) {
 //export cpay_amount
 func cpay_amount(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
 	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanic(&ret, api, gasUsed)
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 	gasBefore := api.gasMeter.GasConsumed()
 	amount := api.host.PayAmount(api.gasMeter)
 	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)

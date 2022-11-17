@@ -163,7 +163,7 @@ func (e MockHostEnv) Identity(meter *lib.GasMeter, address lib.Address) []byte {
 	panic("implement me")
 }
 
-func (e MockHostEnv) CreateSubEnv(contract lib.Address, payAmount *big.Int, isDeploy bool) (lib.HostEnv, error) {
+func (e MockHostEnv) CreateSubEnv(contract lib.Address, method string, payAmount *big.Int, isDeploy bool) (lib.HostEnv, error) {
 	panic("implement me")
 }
 

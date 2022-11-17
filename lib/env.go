@@ -26,7 +26,7 @@ type HostEnv interface {
 	NetworkSize(meter *GasMeter) uint64
 	IdentityState(meter *GasMeter, address Address) byte
 	Identity(meter *GasMeter, address Address) []byte
-	CreateSubEnv(contract Address, payAmount *big.Int, isDeploy bool) (HostEnv, error)
+	CreateSubEnv(contract Address, method string, payAmount *big.Int, isDeploy bool) (HostEnv, error)
 	GetCode(addr Address) []byte
 	Commit()
 	Clear()
@@ -64,7 +64,7 @@ func (g *GasMeter) SetRemainingGas(newLimit uint64) {
 
 func (g *GasMeter) ConsumeGas(gas uint64) {
 	g.gasConsumed += gas
-	if g.gasLimit >= 0 && g.gasLimit < g.gasConsumed {
+	if g.gasLimit > 0 && g.gasLimit < g.gasConsumed {
 		panic(OutOfGas{})
 	}
 }
