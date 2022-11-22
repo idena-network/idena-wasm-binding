@@ -196,7 +196,7 @@ func (e MockHostEnv) AddBalance(meter *lib.GasMeter, address lib.Address, bytes 
 }
 
 func (e MockHostEnv) ContractAddress(meter *lib.GasMeter) lib.Address {
-	panic("implement me")
+	return e.ctx.ContractAddr()
 }
 
 func (e MockHostEnv) ContractCode(meter *lib.GasMeter, addr lib.Address) []byte {
@@ -257,8 +257,8 @@ func TestSum(t *testing.T) {
 
 	api := lib.NewGoAPI(NewMockHostEnv(), &lib.GasMeter{})
 
-	_, _, err := lib.Deploy(api, code, nil, 100000)
+	_, _, err := lib.Deploy(api, code, nil, lib.Address{},  100000)
 	require.NoError(t, err)
-	_, _, err = lib.Execute(api, code, "compute", [][]byte{ToBytes(uint64(10))}, 100000)
+	_, _, err = lib.Execute(api, code, "compute", [][]byte{ToBytes(uint64(10))},  lib.Address{}, 100000)
 	require.NoError(t, err)
 }
