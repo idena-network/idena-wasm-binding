@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"fmt"
 	"math/big"
 )
 
@@ -59,7 +58,6 @@ func (g *GasMeter) GasConsumed() uint64 {
 
 func (g *GasMeter) SetRemainingGas(newLimit uint64) {
 	g.gasLimit = newLimit
-	println(fmt.Sprintf("set new gas limit %v", newLimit))
 }
 
 func (g *GasMeter) ConsumeGas(gas uint64) {

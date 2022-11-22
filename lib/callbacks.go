@@ -400,7 +400,7 @@ func ccall(ptr *C.api_t, addr C.U8SliceView, method C.U8SliceView, args C.U8Slic
 		host:     subHost,
 		gasMeter: &meter,
 	}
-	subCallGasUsed, actionResultBytes, err := execute(subApi, code, pMethod, pArgs, copyU8Slice(invocationContext), uint64(gasLimit))
+	subCallGasUsed, actionResultBytes, err := execute(subApi, code, pMethod, pArgs, copyU8Slice(invocationContext), address, uint64(gasLimit))
 	if err == nil {
 		subHost.Commit()
 		api.host.Commit()
@@ -446,8 +446,6 @@ func cdeploy(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce C.U8Sli
 		}
 	}
 
-
-
 	if api.host.ContractCodeHash(addr) != nil {
 		setActionResult("contract is already deployed")
 		return C.GoResult_Other
@@ -464,7 +462,7 @@ func cdeploy(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce C.U8Sli
 		gasMeter: &meter,
 	}
 	subHost.Deploy(pCode)
-	subCallGasUsed, actionResultBytes, err := deploy(subApi, pCode, pArgs, uint64(gasLimit))
+	subCallGasUsed, actionResultBytes, err := deploy(subApi, pCode, pArgs, addr, uint64(gasLimit))
 	println(fmt.Sprintf("deploy err: %v", err))
 	if err == nil {
 		subHost.Commit()
