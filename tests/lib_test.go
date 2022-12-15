@@ -53,6 +53,10 @@ type MockHostEnv struct {
 	contractStakeCache    map[lib.Address]*big.Int
 }
 
+func (e *MockHostEnv) IsDebug() bool {
+	return true
+}
+
 func NewMockHostEnv() *MockHostEnv {
 	return &MockHostEnv{
 		db: &MockDb{
@@ -143,7 +147,7 @@ func (e MockHostEnv) MinFeePerGas(meter *lib.GasMeter) *big.Int {
 	panic("implement me")
 }
 
-func (e MockHostEnv) Balance(meter *lib.GasMeter, address lib.Address) *big.Int {
+func (e MockHostEnv) Balance(meter *lib.GasMeter) *big.Int {
 	panic("implement me")
 }
 
@@ -172,7 +176,7 @@ func (e MockHostEnv) GetCode(addr lib.Address) []byte {
 }
 
 func (e MockHostEnv) Commit() {
-	panic("implement me")
+
 }
 
 func (e MockHostEnv) Clear() {
@@ -257,8 +261,8 @@ func TestSum(t *testing.T) {
 
 	api := lib.NewGoAPI(NewMockHostEnv(), &lib.GasMeter{})
 
-	_, _, err := lib.Deploy(api, code, nil, lib.Address{},  100000)
+	_, _, err := lib.Deploy(api, code, [][]byte{ToBytes(uint64(1))}, lib.Address{},  100000, true)
 	require.NoError(t, err)
-	_, _, err = lib.Execute(api, code, "compute", [][]byte{ToBytes(uint64(10))},  lib.Address{}, 100000)
+	_, _, err = lib.Execute(api, code, "compute", [][]byte{ToBytes(uint64(10))},  lib.Address{}, 100000, true)
 	require.NoError(t, err)
 }
