@@ -20,7 +20,7 @@ type HostEnv interface {
 	BlockTimestamp(*GasMeter) int64
 	Send(*GasMeter, Address, *big.Int) error
 	MinFeePerGas(meter *GasMeter) *big.Int
-	Balance(meter *GasMeter, address Address) *big.Int
+	Balance(meter *GasMeter) *big.Int
 	BlockSeed(meter *GasMeter) []byte
 	NetworkSize(meter *GasMeter) uint64
 	IdentityState(meter *GasMeter, address Address) byte
@@ -45,6 +45,7 @@ type HostEnv interface {
 	Epoch(meter *GasMeter) uint16
 	ContractCodeHash(addr Address) *[]byte
 	PayAmount(meter *GasMeter) *big.Int
+	IsDebug() bool
 }
 
 type GasMeter struct {

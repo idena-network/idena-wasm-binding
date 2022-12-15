@@ -56,24 +56,24 @@ func errorWithMessage(err int, b C.UnmanagedVector) error {
 	return fmt.Errorf("%s", string(msg))
 }
 
-func Execute(api *GoAPI, code []byte, method string, args [][]byte, contractAddr Address, gasLimit uint64) (uint64, []byte, error) {
+func Execute(api *GoAPI, code []byte, method string, args [][]byte, contractAddr Address, gasLimit uint64, is_debug bool) (uint64, []byte, error) {
 
-	gas, actionResult, err := execute(api, code, []byte(method), PackArguments(args), []byte{}, contractAddr, gasLimit)
+	gas, actionResult, err := execute(api, code, []byte(method), PackArguments(args), []byte{}, contractAddr, gasLimit, is_debug)
 	return gas, actionResult, err
 }
 
-func Deploy(api *GoAPI, code []byte, args [][]byte, contractAddr Address, gasLimit uint64) (uint64, []byte, error) {
-	gas, actionResult, err := deploy(api, code, PackArguments(args), contractAddr, gasLimit)
+func Deploy(api *GoAPI, code []byte, args [][]byte, contractAddr Address, gasLimit uint64, is_debug bool) (uint64, []byte, error) {
+	gas, actionResult, err := deploy(api, code, PackArguments(args), contractAddr, gasLimit, is_debug)
 	return gas, actionResult, err
 }
 
-func execute(api *GoAPI, code []byte, method []byte, args []byte, invocationContext []byte, contractAddr Address, gasLimit uint64) (uint64, []byte, error) {
+func execute(api *GoAPI, code []byte, method []byte, args []byte, invocationContext []byte, contractAddr Address, gasLimit uint64, is_debug bool) (uint64, []byte, error) {
 	errmsg := newUnmanagedVector(nil)
 
 	action_result := newUnmanagedVector(nil)
 
 	var gasUsed cu64
-	C.execute(buildAPI(api), makeView(code), makeView(method), makeView(args), makeView(invocationContext), makeView(contractAddr[:]), cu64(gasLimit), &gasUsed, &action_result, &errmsg)
+	C.execute(buildAPI(api), makeView(code), makeView(method), makeView(args), makeView(invocationContext), makeView(contractAddr[:]), cu64(gasLimit), &gasUsed, &action_result, &errmsg, cbool(is_debug))
 	actionResultBytes := copyAndDestroyUnmanagedVector(action_result)
 	protoModel := models.ActionResult{}
 	if err := proto.Unmarshal(actionResultBytes, &protoModel); err != nil {
@@ -102,13 +102,13 @@ func truncateActionResultData(actionResult *models.ActionResult, depth int) {
 	}
 }
 
-func deploy(api *GoAPI, code []byte, args []byte, contractAddr Address, gasLimit uint64) (uint64, []byte, error) {
+func deploy(api *GoAPI, code []byte, args []byte, contractAddr Address, gasLimit uint64, is_debug bool) (uint64, []byte, error) {
 	errmsg := newUnmanagedVector(nil)
 
 	action_result := newUnmanagedVector(nil)
 
 	var gasUsed cu64
-	C.deploy(buildAPI(api), makeView(code), makeView(args), makeView(contractAddr[:]), cu64(gasLimit), &gasUsed, &action_result, &errmsg)
+	C.deploy(buildAPI(api), makeView(code), makeView(args), makeView(contractAddr[:]), cu64(gasLimit), &gasUsed, &action_result, &errmsg, cbool(is_debug))
 	actionResultBytes := copyAndDestroyUnmanagedVector(action_result)
 	protoModel := models.ActionResult{}
 	if err := proto.Unmarshal(actionResultBytes, &protoModel); err != nil {

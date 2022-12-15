@@ -28,8 +28,8 @@ GoResult cblock_number(api_t *ptr, uint64_t *used_gas,  uint64_t *block_number);
 typedef GoResult (*min_fee_per_gas_fn)(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *data);
 GoResult cmin_fee_per_gas(api_t *ptr, uint64_t *used_gas,   UnmanagedVector *data);
 
-typedef GoResult (*balance_fn)(api_t *ptr, U8SliceView addr, uint64_t *used_gas,  UnmanagedVector *data);
-GoResult cbalance(api_t *ptr, U8SliceView addr, uint64_t *used_gas,   UnmanagedVector *data);
+typedef GoResult (*balance_fn)(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *data);
+GoResult cbalance(api_t *ptr, uint64_t *used_gas,   UnmanagedVector *data);
 
 typedef GoResult (*block_seed_fn)(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *seed);
 GoResult cblock_seed(api_t *ptr, uint64_t *used_gas,   UnmanagedVector *seed);
@@ -98,7 +98,6 @@ GoResult cpay_amount(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *result);
 */
 import "C"
 import (
-	"fmt"
 	"github.com/golang/protobuf/proto"
 	models "github.com/idena-network/idena-wasm-binding/lib/protobuf"
 	"log"
@@ -284,14 +283,13 @@ func cmin_fee_per_gas(ptr *C.api_t, gasUsed *cu64, data *C.UnmanagedVector) (ret
 }
 
 //export cbalance
-func cbalance(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, data *C.UnmanagedVector) (ret C.GoResult) {
+func cbalance(ptr *C.api_t, gasUsed *cu64, data *C.UnmanagedVector) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
 	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
 
-	address := newAddress(copyU8Slice(addr))
 	gasBefore := api.gasMeter.GasConsumed()
-	balance := api.host.Balance(api.gasMeter, address)
+	balance := api.host.Balance(api.gasMeter)
 
 	*data = newUnmanagedVector(balance.Bytes())
 	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
@@ -400,7 +398,7 @@ func ccall(ptr *C.api_t, addr C.U8SliceView, method C.U8SliceView, args C.U8Slic
 		host:     subHost,
 		gasMeter: &meter,
 	}
-	subCallGasUsed, actionResultBytes, err := execute(subApi, code, pMethod, pArgs, copyU8Slice(invocationContext), address, uint64(gasLimit))
+	subCallGasUsed, actionResultBytes, err := execute(subApi, code, pMethod, pArgs, copyU8Slice(invocationContext), address, uint64(gasLimit), subHost.IsDebug())
 	if err == nil {
 		subHost.Commit()
 		api.host.Commit()
@@ -462,8 +460,7 @@ func cdeploy(ptr *C.api_t, code C.U8SliceView, args C.U8SliceView, nonce C.U8Sli
 		gasMeter: &meter,
 	}
 	subHost.Deploy(pCode)
-	subCallGasUsed, actionResultBytes, err := deploy(subApi, pCode, pArgs, addr, uint64(gasLimit))
-	println(fmt.Sprintf("deploy err: %v", err))
+	subCallGasUsed, actionResultBytes, err := deploy(subApi, pCode, pArgs, addr, uint64(gasLimit), subHost.IsDebug())
 	if err == nil {
 		subHost.Commit()
 		api.host.Commit()
