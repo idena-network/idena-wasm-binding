@@ -95,6 +95,13 @@ GoResult cread_contract_data(api_t *ptr, U8SliceView addr, U8SliceView key,  uin
 typedef GoResult (*pay_amount_fn)(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *result);
 GoResult cpay_amount(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *result);
 
+
+typedef GoResult (*block_header_fn)(api_t *ptr, uint64_t height, uint64_t *used_gas,  UnmanagedVector *result);
+GoResult cblock_header(api_t *ptr,  uint64_t height, uint64_t *used_gas,  UnmanagedVector *result);
+
+typedef GoResult (*keccak256_fn)(api_t *ptr, U8SliceView data, uint64_t *used_gas,  UnmanagedVector *result);
+GoResult ckeccak256(api_t *ptr,  U8SliceView data, uint64_t *used_gas,  UnmanagedVector *result);
+
 */
 import "C"
 import (
@@ -154,6 +161,8 @@ var api_vtable = C.GoApi_vtable{
 	read_contract_data:    (C.read_contract_data_fn)(C.cread_contract_data),
 	pay_amount:            (C.pay_amount_fn)(C.cpay_amount),
 	event:                 (C.event_fn)(C.cevent),
+	block_header:          (C.block_header_fn)(C.cblock_header),
+	keccak256:             (C.keccak256_fn)(C.ckeccak256),
 }
 
 // contract: original pointer/struct referenced must live longer than C.GoApi struct
@@ -675,5 +684,27 @@ func cpay_amount(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.
 	amount := api.host.PayAmount(api.gasMeter)
 	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
 	*result = newUnmanagedVector(amount.Bytes())
+	return C.GoResult_Ok
+}
+
+//export cblock_header
+func cblock_header(ptr *C.api_t, height cu64, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
+	api := (*GoAPI)(unsafe.Pointer(ptr))
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
+	gasBefore := api.gasMeter.GasConsumed()
+	data := api.host.BlockHeader(api.gasMeter, uint64(height))
+	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
+	*result = newUnmanagedVector(data)
+	return C.GoResult_Ok
+}
+
+//export ckeccak256
+func ckeccak256(ptr *C.api_t, data C.U8SliceView, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
+	api := (*GoAPI)(unsafe.Pointer(ptr))
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
+	gasBefore := api.gasMeter.GasConsumed()
+	hash := api.host.Keccak256(api.gasMeter, copyU8Slice(data))
+	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
+	*result = newUnmanagedVector(hash)
 	return C.GoResult_Ok
 }
