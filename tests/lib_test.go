@@ -53,6 +53,14 @@ type MockHostEnv struct {
 	contractStakeCache    map[lib.Address]*big.Int
 }
 
+func (e *MockHostEnv) BlockHeader(meter *lib.GasMeter, height uint64) []byte {
+	panic("implement me")
+}
+
+func (e *MockHostEnv) Keccak256(meter *lib.GasMeter, data []byte) []byte {
+	panic("implement me")
+}
+
 func (e *MockHostEnv) IsDebug() bool {
 	return true
 }
