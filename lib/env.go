@@ -46,6 +46,8 @@ type HostEnv interface {
 	ContractCodeHash(addr Address) *[]byte
 	PayAmount(meter *GasMeter) *big.Int
 	IsDebug() bool
+	BlockHeader(meter *GasMeter, height uint64) []byte
+	Keccak256(meter *GasMeter, data []byte) []byte
 }
 
 type GasMeter struct {
