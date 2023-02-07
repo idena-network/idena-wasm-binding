@@ -102,6 +102,9 @@ GoResult cblock_header(api_t *ptr,  uint64_t height, uint64_t *used_gas,  Unmana
 typedef GoResult (*keccak256_fn)(api_t *ptr, U8SliceView data, uint64_t *used_gas,  UnmanagedVector *result);
 GoResult ckeccak256(api_t *ptr,  U8SliceView data, uint64_t *used_gas,  UnmanagedVector *result);
 
+typedef GoResult (*global_state_fn)(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *result);
+GoResult cglobal_state(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *result);
+
 */
 import "C"
 import (
@@ -163,6 +166,7 @@ var api_vtable = C.GoApi_vtable{
 	event:                 (C.event_fn)(C.cevent),
 	block_header:          (C.block_header_fn)(C.cblock_header),
 	keccak256:             (C.keccak256_fn)(C.ckeccak256),
+	global_state:          (C.global_state_fn)(C.cglobal_state),
 }
 
 // contract: original pointer/struct referenced must live longer than C.GoApi struct
@@ -706,5 +710,16 @@ func ckeccak256(ptr *C.api_t, data C.U8SliceView, gasUsed *cu64, result *C.Unman
 	hash := api.host.Keccak256(api.gasMeter, copyU8Slice(data))
 	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
 	*result = newUnmanagedVector(hash)
+	return C.GoResult_Ok
+}
+
+//export cglobal_state
+func cglobal_state(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret C.GoResult) {
+	api := (*GoAPI)(unsafe.Pointer(ptr))
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
+	gasBefore := api.gasMeter.GasConsumed()
+	data := api.host.GlobalState(api.gasMeter)
+	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
+	*result = newUnmanagedVector(data)
 	return C.GoResult_Ok
 }

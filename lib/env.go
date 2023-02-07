@@ -48,6 +48,7 @@ type HostEnv interface {
 	IsDebug() bool
 	BlockHeader(meter *GasMeter, height uint64) []byte
 	Keccak256(meter *GasMeter, data []byte) []byte
+	GlobalState(meter *GasMeter) []byte
 }
 
 type GasMeter struct {
