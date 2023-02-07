@@ -53,6 +53,11 @@ type MockHostEnv struct {
 	contractStakeCache    map[lib.Address]*big.Int
 }
 
+func (e *MockHostEnv) GlobalState(meter *lib.GasMeter) []byte {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (e *MockHostEnv) BlockHeader(meter *lib.GasMeter, height uint64) []byte {
 	panic("implement me")
 }
@@ -269,8 +274,8 @@ func TestSum(t *testing.T) {
 
 	api := lib.NewGoAPI(NewMockHostEnv(), &lib.GasMeter{})
 
-	_, _, err := lib.Deploy(api, code, [][]byte{ToBytes(uint64(1))}, lib.Address{},  100000, true)
+	_, _, err := lib.Deploy(api, code, [][]byte{ToBytes(uint64(1))}, lib.Address{}, 100000, true)
 	require.NoError(t, err)
-	_, _, err = lib.Execute(api, code, "compute", [][]byte{ToBytes(uint64(10))},  lib.Address{}, 100000, true)
+	_, _, err = lib.Execute(api, code, "compute", [][]byte{ToBytes(uint64(10))}, lib.Address{}, 100000, true)
 	require.NoError(t, err)
 }
