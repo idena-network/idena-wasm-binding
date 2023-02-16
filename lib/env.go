@@ -23,7 +23,6 @@ type HostEnv interface {
 	Balance(meter *GasMeter) *big.Int
 	BlockSeed(meter *GasMeter) []byte
 	NetworkSize(meter *GasMeter) uint64
-	IdentityState(meter *GasMeter, address Address) byte
 	Identity(meter *GasMeter, address Address) []byte
 	CreateSubEnv(contract Address, method string, payAmount *big.Int, isDeploy bool) (HostEnv, error)
 	GetCode(addr Address) []byte
@@ -49,6 +48,8 @@ type HostEnv interface {
 	BlockHeader(meter *GasMeter, height uint64) []byte
 	Keccak256(meter *GasMeter, data []byte) []byte
 	GlobalState(meter *GasMeter) []byte
+	Burn(meter *GasMeter, amount *big.Int) error
+	Ecrecover(meter *GasMeter, data []byte, signature []byte) []byte
 }
 
 type GasMeter struct {

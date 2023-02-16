@@ -68,13 +68,12 @@ func Deploy(api *GoAPI, code []byte, args [][]byte, contractAddr Address, gasLim
 }
 
 func execute(api *GoAPI, code []byte, method []byte, args []byte, invocationContext []byte, contractAddr Address, gasLimit uint64, is_debug bool) (uint64, []byte, error) {
-	errmsg := newUnmanagedVector(nil)
 
-	action_result := newUnmanagedVector(nil)
+	actionResult := newUnmanagedVector(nil)
 
 	var gasUsed cu64
-	C.execute(buildAPI(api), makeView(code), makeView(method), makeView(args), makeView(invocationContext), makeView(contractAddr[:]), cu64(gasLimit), &gasUsed, &action_result, &errmsg, cbool(is_debug))
-	actionResultBytes := copyAndDestroyUnmanagedVector(action_result)
+	C.execute(buildAPI(api), makeView(code), makeView(method), makeView(args), makeView(invocationContext), makeView(contractAddr[:]), cu64(gasLimit), &gasUsed, &actionResult, cbool(is_debug))
+	actionResultBytes := copyAndDestroyUnmanagedVector(actionResult)
 	protoModel := models.ActionResult{}
 	if err := proto.Unmarshal(actionResultBytes, &protoModel); err != nil {
 		return uint64(gasUsed), actionResultBytes, err
@@ -103,13 +102,11 @@ func truncateActionResultData(actionResult *models.ActionResult, depth int) {
 }
 
 func deploy(api *GoAPI, code []byte, args []byte, contractAddr Address, gasLimit uint64, is_debug bool) (uint64, []byte, error) {
-	errmsg := newUnmanagedVector(nil)
-
-	action_result := newUnmanagedVector(nil)
+	actionResult := newUnmanagedVector(nil)
 
 	var gasUsed cu64
-	C.deploy(buildAPI(api), makeView(code), makeView(args), makeView(contractAddr[:]), cu64(gasLimit), &gasUsed, &action_result, &errmsg, cbool(is_debug))
-	actionResultBytes := copyAndDestroyUnmanagedVector(action_result)
+	C.deploy(buildAPI(api), makeView(code), makeView(args), makeView(contractAddr[:]), cu64(gasLimit), &gasUsed, &actionResult, cbool(is_debug))
+	actionResultBytes := copyAndDestroyUnmanagedVector(actionResult)
 	protoModel := models.ActionResult{}
 	if err := proto.Unmarshal(actionResultBytes, &protoModel); err != nil {
 		return uint64(gasUsed), actionResultBytes, err
