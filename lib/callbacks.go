@@ -105,6 +105,13 @@ GoResult ckeccak256(api_t *ptr,  U8SliceView data, uint64_t *used_gas,  Unmanage
 typedef GoResult (*global_state_fn)(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *result);
 GoResult cglobal_state(api_t *ptr, uint64_t *used_gas,  UnmanagedVector *result);
 
+
+typedef GoResult (*burn_fn)(api_t *ptr, U8SliceView amount,  uint64_t *used_gas);
+GoResult cburn(api_t *ptr, U8SliceView amount,  uint64_t *used_gas);
+
+typedef GoResult (*ecrecover_fn)(api_t *ptr, U8SliceView data,U8SliceView sig, uint64_t *used_gas,  UnmanagedVector *result);
+GoResult cecrecover(api_t *ptr,  U8SliceView data, U8SliceView sig,  uint64_t *used_gas,  UnmanagedVector *result);
+
 */
 import "C"
 import (
@@ -134,22 +141,21 @@ func NewGoAPI(env HostEnv, gasMeter *GasMeter) *GoAPI {
 }
 
 var api_vtable = C.GoApi_vtable{
-	set_remaining_gas:     (C.set_remaining_gas_fn)(C.cset_remaining_gas),
-	set_storage:           (C.set_storage_fn)(C.cset_storage),
-	get_storage:           (C.get_storage_fn)(C.cget_storage),
-	remove_storage:        (C.remove_storage_fn)(C.cremove_storage),
-	block_timestamp:       (C.block_timestamp_fn)(C.cblock_timestamp),
-	block_number:          (C.block_number_fn)(C.cblock_number),
-	min_fee_per_gas:       (C.min_fee_per_gas_fn)(C.cmin_fee_per_gas),
-	balance:               (C.balance_fn)(C.cbalance),
-	block_seed:            (C.block_seed_fn)(C.cblock_seed),
-	network_size:          (C.network_size_fn)(C.cnetwork_size),
-	identity_state:        (C.identity_state_fn)(C.cidentity_state),
-	send:                  (C.send_fn)(C.csend),
-	identity:              (C.identity_fn)(C.cidentity),
-	caller:                (C.caller_fn)(C.ccaller),
-	original_caller:       (C.original_caller_fn)(C.coriginal_caller),
-	commit:                (C.commit_fn)(C.ccommit),
+	set_remaining_gas: (C.set_remaining_gas_fn)(C.cset_remaining_gas),
+	set_storage:       (C.set_storage_fn)(C.cset_storage),
+	get_storage:       (C.get_storage_fn)(C.cget_storage),
+	remove_storage:    (C.remove_storage_fn)(C.cremove_storage),
+	block_timestamp:   (C.block_timestamp_fn)(C.cblock_timestamp),
+	block_number:      (C.block_number_fn)(C.cblock_number),
+	min_fee_per_gas:   (C.min_fee_per_gas_fn)(C.cmin_fee_per_gas),
+	balance:           (C.balance_fn)(C.cbalance),
+	block_seed:        (C.block_seed_fn)(C.cblock_seed),
+	network_size:      (C.network_size_fn)(C.cnetwork_size),
+	send:              (C.send_fn)(C.csend),
+	identity:          (C.identity_fn)(C.cidentity),
+	caller:            (C.caller_fn)(C.ccaller),
+	original_caller:   (C.original_caller_fn)(C.coriginal_caller),
+	//commit:                (C.commit_fn)(C.ccommit),
 	deduct_balance:        (C.deduct_balance_fn)(C.cdeduct_balance),
 	add_balance:           (C.add_balance_fn)(C.cadd_balance),
 	contract:              (C.contract_fn)(C.ccontract),
@@ -167,15 +173,17 @@ var api_vtable = C.GoApi_vtable{
 	block_header:          (C.block_header_fn)(C.cblock_header),
 	keccak256:             (C.keccak256_fn)(C.ckeccak256),
 	global_state:          (C.global_state_fn)(C.cglobal_state),
+	burn:                  (C.burn_fn)(C.cburn),
+	ecrecover:             (C.ecrecover_fn)(C.cecrecover),
 }
 
 // contract: original pointer/struct referenced must live longer than C.GoApi struct
 // since this is only used internally, we can verify the code that this is the case
 func buildAPI(api *GoAPI) C.GoApi {
 	return C.GoApi{
-		state:    (*C.api_t)(unsafe.Pointer(api)),
-		gasMeter: (*C.gas_meter_t)(unsafe.Pointer(api.gasMeter)),
-		vtable:   api_vtable,
+		state:     (*C.api_t)(unsafe.Pointer(api)),
+		gas_meter: (*C.gas_meter_t)(unsafe.Pointer(api.gasMeter)),
+		vtable:    api_vtable,
 	}
 }
 
@@ -331,21 +339,6 @@ func cnetwork_size(ptr *C.api_t, gasUsed *cu64, network *cu64) (ret C.GoResult) 
 	gasBefore := api.gasMeter.GasConsumed()
 
 	*network = cu64(api.host.NetworkSize(api.gasMeter))
-
-	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
-	return C.GoResult_Ok
-}
-
-//export cidentity_state
-func cidentity_state(ptr *C.api_t, addr C.U8SliceView, gasUsed *cu64, state *cu8) (ret C.GoResult) {
-
-	api := (*GoAPI)(unsafe.Pointer(ptr))
-	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
-
-	address := newAddress(copyU8Slice(addr))
-	gasBefore := api.gasMeter.GasConsumed()
-
-	*state = cu8(api.host.IdentityState(api.gasMeter, address))
 
 	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
 	return C.GoResult_Ok
@@ -515,7 +508,7 @@ func coriginal_caller(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (r
 	return C.GoResult_Ok
 }
 
-//export ccommit
+/*//export ccommit
 func ccommit(ptr *C.api_t) (ret C.GoResult) {
 
 	api := (*GoAPI)(unsafe.Pointer(ptr))
@@ -523,7 +516,7 @@ func ccommit(ptr *C.api_t) (ret C.GoResult) {
 	api.host.Commit()
 	api.host.Clear()
 	return C.GoResult_Ok
-}
+}*/
 
 //export cdeduct_balance
 func cdeduct_balance(ptr *C.api_t, amount C.U8SliceView, gasUsed *cu64, errOut *C.UnmanagedVector) (ret C.GoResult) {
@@ -536,6 +529,7 @@ func cdeduct_balance(ptr *C.api_t, amount C.U8SliceView, gasUsed *cu64, errOut *
 
 	if err := api.host.SubBalance(api.gasMeter, big.NewInt(0).SetBytes(amountBytes)); err != nil {
 		*errOut = newUnmanagedVector([]byte(err.Error()))
+		*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
 		return C.GoResult_Other
 	}
 
@@ -721,5 +715,35 @@ func cglobal_state(ptr *C.api_t, gasUsed *cu64, result *C.UnmanagedVector) (ret 
 	data := api.host.GlobalState(api.gasMeter)
 	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
 	*result = newUnmanagedVector(data)
+	return C.GoResult_Ok
+}
+
+//export cburn
+func cburn(ptr *C.api_t, amount C.U8SliceView, gasUsed *cu64) (ret C.GoResult) {
+
+	api := (*GoAPI)(unsafe.Pointer(ptr))
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
+
+	amountBytes := copyU8Slice(amount)
+	gasBefore := api.gasMeter.GasConsumed()
+
+	if err := api.host.Burn(api.gasMeter, big.NewInt(0).SetBytes(amountBytes)); err != nil {
+		*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
+		return C.GoResult_Other
+	}
+
+	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
+
+	return C.GoResult_Ok
+}
+
+//export cecrecover
+func cecrecover(ptr *C.api_t, data C.U8SliceView, sig C.U8SliceView, gasUsed *cu64, pubkey *C.UnmanagedVector) (ret C.GoResult) {
+	api := (*GoAPI)(unsafe.Pointer(ptr))
+	defer recoverPanicAndResetGasUsed(&ret, api, gasUsed)
+	gasBefore := api.gasMeter.GasConsumed()
+	pb := api.host.Ecrecover(api.gasMeter, copyU8Slice(data), copyU8Slice(sig))
+	*gasUsed = cu64(api.gasMeter.GasConsumed() - gasBefore)
+	*pubkey = newUnmanagedVector(pb)
 	return C.GoResult_Ok
 }

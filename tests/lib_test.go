@@ -53,6 +53,16 @@ type MockHostEnv struct {
 	contractStakeCache    map[lib.Address]*big.Int
 }
 
+func (e *MockHostEnv) Burn(meter *lib.GasMeter, amount *big.Int) error {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (e *MockHostEnv) Ecrecover(meter *lib.GasMeter, data []byte, signature []byte) []byte {
+	//TODO implement me
+	panic("implement me")
+}
+
 func (e *MockHostEnv) GlobalState(meter *lib.GasMeter) []byte {
 	//TODO implement me
 	panic("implement me")
