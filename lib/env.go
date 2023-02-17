@@ -18,7 +18,6 @@ type HostEnv interface {
 	RemoveStorage(*GasMeter, []byte)
 	BlockNumber(*GasMeter) uint64
 	BlockTimestamp(*GasMeter) int64
-	Send(*GasMeter, Address, *big.Int) error
 	MinFeePerGas(meter *GasMeter) *big.Int
 	Balance(meter *GasMeter) *big.Int
 	BlockSeed(meter *GasMeter) []byte
@@ -27,13 +26,11 @@ type HostEnv interface {
 	CreateSubEnv(contract Address, method string, payAmount *big.Int, isDeploy bool) (HostEnv, error)
 	GetCode(addr Address) []byte
 	Commit()
-	Clear()
 	Caller(meter *GasMeter) Address
 	OriginalCaller(meter *GasMeter) Address
 	SubBalance(meter *GasMeter, amount *big.Int) error
 	AddBalance(meter *GasMeter, address Address, bytes *big.Int)
 	ContractAddress(meter *GasMeter) Address
-	ContractCode(meter *GasMeter, addr Address) []byte
 	ContractAddr(meter *GasMeter, code []byte, args []byte, nonce []byte) Address
 	Deploy(code []byte)
 	ContractAddrByHash(meter *GasMeter, hash []byte, args []byte, nonce []byte) Address
