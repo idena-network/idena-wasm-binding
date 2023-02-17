@@ -162,10 +162,6 @@ func (e MockHostEnv) BlockTimestamp(meter *lib.GasMeter) int64 {
 	panic("implement me")
 }
 
-func (e MockHostEnv) Send(meter *lib.GasMeter, address lib.Address, b *big.Int) error {
-	panic("implement me")
-}
-
 func (e MockHostEnv) MinFeePerGas(meter *lib.GasMeter) *big.Int {
 	panic("implement me")
 }
@@ -202,10 +198,6 @@ func (e MockHostEnv) Commit() {
 
 }
 
-func (e MockHostEnv) Clear() {
-	panic("implement me")
-}
-
 func (e MockHostEnv) Caller(meter *lib.GasMeter) lib.Address {
 	panic("implement me")
 }
@@ -224,10 +216,6 @@ func (e MockHostEnv) AddBalance(meter *lib.GasMeter, address lib.Address, bytes 
 
 func (e MockHostEnv) ContractAddress(meter *lib.GasMeter) lib.Address {
 	return e.ctx.ContractAddr()
-}
-
-func (e MockHostEnv) ContractCode(meter *lib.GasMeter, addr lib.Address) []byte {
-	panic("implement me")
 }
 
 func (e MockHostEnv) ContractAddr(meter *lib.GasMeter, code []byte, args []byte, nonce []byte) lib.Address {
